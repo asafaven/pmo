@@ -1,14 +1,11 @@
 from flask import Flask, render_template
-import os
-
 app = Flask(__name__)
 
-
+# two decorators, same function
 @app.route('/')
-def home():
-    return render_template('index.html')
+def index():
+    return render_template('index.html', the_title='Index Home Page')
 
-
-if __name__ == "__main__":
-    port = int(os.environ.get('PORT', 5000))
+if __name__ == '__main__':
+    port = 6000
     app.run(debug=True, host='0.0.0.0', port=port)
