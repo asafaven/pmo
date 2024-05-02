@@ -1,18 +1,4 @@
-# VPC
-resource "google_compute_network" "default" {
-  name                    = "${var.web_server_name}-network"
-  auto_create_subnetworks = false
-}
-
-# Subnet to include the backend compute engines.
-resource "google_compute_subnetwork" "default" {
-  name          = "${var.web_server_name}-subnet"
-  ip_cidr_range = "10.0.1.0/24"
-  region        = var.region
-  network       = google_compute_network.default.id
-}
-
-# reserved IP address - required for external load balancer.
+# reserved IP address - required to set external ddd ip for the external load balancer.
 resource "google_compute_global_address" "default" {
   name     = "${var.web_server_name}-static-ip"
 }
@@ -39,7 +25,7 @@ resource "google_compute_url_map" "default" {
   default_service = google_compute_backend_service.default.id
 }
 
-# backend service with custom request and response headers
+# backend service
 resource "google_compute_backend_service" "default" {
   name                    = "${var.web_server_name}-backend-service"
   protocol                = "HTTP"
@@ -55,26 +41,6 @@ resource "google_compute_backend_service" "default" {
   }
 }
 
-# instance template
-resource "google_compute_instance_template" "default" {
-  name         = "${var.web_server_name}-mig-template"
-  machine_type = "e2-small"
-  tags         = ["allow-health-check"]
-
-  network_interface {
-    network    = google_compute_network.default.id
-    subnetwork = google_compute_subnetwork.default.id
-    access_config {}
-  }
-  disk {
-    source_image = "centos-cloud/centos-7"
-    auto_delete  = true
-    boot         = true
-  }
-  lifecycle {
-    create_before_destroy = true
-  }
-}
 
 # health check
 resource "google_compute_health_check" "default" {
@@ -100,16 +66,4 @@ resource "google_compute_region_instance_group_manager" "default" {
   }
   base_instance_name = "vm"
   target_size        = 2
-}
-
-# allow access from health check ranges
-resource "google_compute_firewall" "default" {
-  name          = "${var.web_server_name}-fw-allow-hc"
-  direction     = "INGRESS"
-  network       = google_compute_network.default.id
-  source_ranges = ["130.211.0.0/22", "35.191.0.0/16"]
-  allow {
-    protocol = "tcp"
-  }
-  target_tags = ["allow-health-check"]
 }
